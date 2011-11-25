@@ -1,0 +1,374 @@
+#include "testApp.h"
+
+
+//--------------------------------------------------------------
+void testApp::setup() {
+	ofSetLogLevel(OF_LOG_VERBOSE);
+	
+    // enable depth->rgb image calibration
+	kinect.setRegistration(true);
+    
+	kinect.init();
+	//kinect.init(true); // shows infrared instead of RGB video image
+	//kinect.init(false, false); // disable video image (faster fps)
+	kinect.open();
+	
+#ifdef USE_TWO_KINECTS
+	kinect2.init();
+	kinect2.open();
+#endif
+	
+	colorImg.allocate(kinect.width, kinect.height);
+	grayImage.allocate(kinect.width, kinect.height);
+	grayThreshNear.allocate(kinect.width, kinect.height);
+	grayThreshFar.allocate(kinect.width, kinect.height);
+	
+	nearThreshold = 230;
+	farThreshold = 70;
+	bThreshWithOpenCV = true;
+	
+	ofSetFrameRate(60);
+	
+	// zero the tilt on startup
+	angle = 0;
+	kinect.setCameraTiltAngle(angle);
+	
+	// start from the front
+	bDrawPointCloud = false;
+	
+	// 0 output channels, 
+	// 2 input channels
+	// 44100 samples per second
+	// 256 samples per buffer
+	// 4 num buffers (latency)
+	
+	soundStream.listDevices();
+	
+	//if you want to set a different device id 
+	//soundStream.setDeviceID(0); //bear in mind the device id corresponds to all audio devices, including  input-only and output-only devices.
+	
+	int bufferSize = 256;
+	
+	
+	left.assign(bufferSize, 0.0);
+	right.assign(bufferSize, 0.0);
+	volHistory.assign(400, 0.0);
+	
+	bufferCounter	= 0;
+	drawCounter		= 0;
+	smoothedVol     = 0.0;
+	scaledVol		= 0.0;
+	
+	soundStream.setup(this, 0, 2, 44100, bufferSize, 4);
+
+	// Test images
+	ocean.loadImage("images/ocean.jpg");
+	desert.loadImage("images/desert.jpg");
+}
+
+//--------------------------------------------------------------
+void testApp::update() {
+	
+	ofBackground(255);
+	
+	kinect.update();
+	
+	// there is a new frame and we are connected
+	if(kinect.isFrameNew()) {
+		
+		// load grayscale depth image from the kinect source
+		grayImage.setFromPixels(kinect.getDepthPixels(), kinect.width, kinect.height);
+		
+		// we do two thresholds - one for the far plane and one for the near plane
+		// we then do a cvAnd to get the pixels which are a union of the two thresholds
+		if(bThreshWithOpenCV) {
+			grayThreshNear = grayImage;
+			grayThreshFar = grayImage;
+			grayThreshNear.threshold(nearThreshold, true);
+			grayThreshFar.threshold(farThreshold);
+			cvAnd(grayThreshNear.getCvImage(), grayThreshFar.getCvImage(), grayImage.getCvImage(), NULL);
+		} else {
+			
+			// or we do it ourselves - show people how they can work with the pixels
+			unsigned char * pix = grayImage.getPixels();
+			
+			int numPixels = grayImage.getWidth() * grayImage.getHeight();
+			for(int i = 0; i < numPixels; i++) {
+				if(pix[i] < nearThreshold && pix[i] > farThreshold) {
+					pix[i] = 255;
+				} else {
+					pix[i] = 0;
+				}
+			}
+		}
+		
+		// update the cv images
+		grayImage.flagImageChanged();
+		
+		// find contours which are between the size of 20 pixels and 1/3 the w*h pixels.
+		// also, find holes is set to true so we will get interior contours as well....
+		contourFinder.findContours(grayImage, 10, (kinect.width*kinect.height)/2, 20, false);
+	}
+	
+#ifdef USE_TWO_KINECTS
+	kinect2.update();
+#endif
+	
+	//lets scale the vol up to a 0-1 range 
+	scaledVol = ofMap(smoothedVol, 0.0, 0.17, 0.0, 1.0, true);
+	
+	//lets record the volume into an array
+	volHistory.push_back( scaledVol );
+	
+	//if we are bigger the the size we want to record - lets drop the oldest value
+	if( volHistory.size() >= 400 ){
+		volHistory.erase(volHistory.begin(), volHistory.begin()+1);
+	}
+	
+}
+
+//--------------------------------------------------------------
+void testApp::draw() {
+	
+	ofSetColor(255);
+
+	desert.draw(0, 0);
+
+	ofEnableAlphaBlending();
+	//float wave = sin(ofGetElapsedTimef());
+	//ofSetColor(255, 255, 255, scaledVol * 255);
+	ofTexture & grayTex = grayImage.getTextureReference();
+	ofTexture & oceanTex = ocean.getTextureReference();
+	//ocean.draw(0, 0, 800, 600);
+	glEnable(GL_TEXTURE);
+	//grayTex.bind();
+	//glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
+	//glBegin(GL_QUADS);
+	//	glTexCoord2f(0, 0);
+	//	glVertex3f(10, 10, 0.0f);
+	//	glTexCoord2f(1, 0);
+	//	glVertex3f(790, 10, 0.0f);
+	//	glTexCoord2f(1, 1);
+	//	glVertex3f(790, 590, 0.0f);
+	//	glTexCoord2f(0, 1);
+	//	glVertex3f(10, 590, 0.0f);
+	//glEnd();
+	//grayTex.bind();
+
+	oceanTex.setTextureWrap(GL_REPEAT,GL_REPEAT);
+    oceanTex.setTextureMinMagFilter(GL_LINEAR,GL_LINEAR);
+	oceanTex.bind();
+
+	glBlendFunc(GL_DST_ALPHA, GL_ONE_MINUS_DST_ALPHA);
+	glBegin(GL_QUADS);
+		glTexCoord2f(0.0f, 0.0f);
+		glVertex3f(60.0f, 60.0f, 0.0f);
+		glTexCoord2f(1.0f, 0.0f);
+		glVertex3f(740.0f, 60.0f, 0.0f);
+		glTexCoord2f(1.0f, 1.0f);
+		glVertex3f(740.0f, 540.0f, 0.0f);
+		glTexCoord2f(0.0f, 1.0f);
+		glVertex3f(60.0f, 540.0f, 0.0f);
+	glEnd();
+	oceanTex.unbind();
+
+	glDisable(GL_TEXTURE);
+	ofDisableAlphaBlending();
+	
+	ofSetColor(255, 255, 255);
+	
+	if(bDrawPointCloud) {
+		easyCam.begin();
+		drawPointCloud();
+		easyCam.end();
+	} 
+	//else {
+		// draw from the live kinect
+		//kinect.drawDepth(10, 10, 400, 300);
+		//kinect.draw(420, 10, 400, 300);
+		
+		//grayImage.draw(0, 0, 800, 600);
+		
+		//contourFinder.draw(10, 320, 400, 300);
+
+	//}
+	
+	// draw instructions
+	ofSetColor(255, 255, 255);
+	stringstream reportStream;
+	reportStream << "accel is: " << ofToString(kinect.getMksAccel().x, 2) << " / "
+	<< ofToString(kinect.getMksAccel().y, 2) << " / "
+	<< ofToString(kinect.getMksAccel().z, 2) << endl
+	<< "press p to switch between images and point cloud, rotate the point cloud with the mouse" << endl
+	<< "using opencv threshold = " << bThreshWithOpenCV <<" (press spacebar)" << endl
+	<< "set near threshold " << nearThreshold << " (press: + -)" << endl
+	<< "set far threshold " << farThreshold << " (press: < >) num blobs found " << contourFinder.nBlobs
+	<< ", fps: " << ofGetFrameRate() << endl
+	<< "press c to close the connection and o to open it again, connection is: " << kinect.isConnected() << endl
+	<< "press UP and DOWN to change the tilt angle: " << angle << " degrees" << endl;
+	ofDrawBitmapString(reportStream.str(),20,652);
+	
+
+/*	ofSetColor(255);
+
+	desert.draw(0, 0);
+
+	ofEnableAlphaBlending();
+	float wave = sin(ofGetElapsedTimef());
+	ofSetColor(255, 255, 255, scaledVol * 255);
+	ocean.draw(0, 0);
+	ofDisableAlphaBlending();*/
+}
+
+void testApp::drawPointCloud() {
+	int w = 640;
+	int h = 480;
+	ofMesh mesh;
+	mesh.setMode(OF_PRIMITIVE_POINTS);
+	int step = 2;
+	for(int y = 0; y < h; y += step) {
+		for(int x = 0; x < w; x += step) {
+			if(kinect.getDistanceAt(x, y) > 0) {
+				mesh.addColor(kinect.getColorAt(x,y));
+				ofVec3f scaler  = ofVec3f(1.0, 1.0, scaledVol);
+				ofVec3f temp = kinect.getWorldCoordinateAt(x, y);
+				mesh.addVertex( temp * scaler );
+//				mesh.addVertex(kinect.getWorldCoordinateAt(x, y));
+			}
+		}
+	}
+	glPointSize(3);
+	ofPushMatrix();
+	// the projected points are 'upside down' and 'backwards' 
+	ofScale(1, -1, -1);
+	ofTranslate(0, 0, -1000); // center the points a bit
+	glEnable(GL_DEPTH_TEST);
+	mesh.drawVertices();
+	glDisable(GL_DEPTH_TEST);
+	ofPopMatrix();
+}
+
+//--------------------------------------------------------------
+void testApp::exit() {
+	kinect.setCameraTiltAngle(0); // zero the tilt on exit
+	kinect.close();
+	
+#ifdef USE_TWO_KINECTS
+	kinect2.close();
+#endif
+}
+
+void testApp::audioIn(float * input, int bufferSize, int nChannels){	
+	
+	float curVol = 0.0;
+	
+	// samples are "interleaved"
+	int numCounted = 0;	
+	
+	//lets go through each sample and calculate the root mean square which is a rough way to calculate volume	
+	for (int i = 0; i < bufferSize; i++){
+		left[i]		= input[i*2]*0.5;
+		right[i]	= input[i*2+1]*0.5;
+		
+		curVol += left[i] * left[i];
+		curVol += right[i] * right[i];
+		numCounted+=2;
+	}
+	
+	//this is how we get the mean of rms :) 
+	curVol /= (float)numCounted;
+	
+	// this is how we get the root of rms :) 
+	curVol = sqrt( curVol );
+	
+	smoothedVol *= 0.93;
+	smoothedVol += 0.07 * curVol;
+	
+	bufferCounter++;
+	
+}
+
+//--------------------------------------------------------------
+void testApp::keyPressed (int key) {
+	switch (key) {
+		case ' ':
+			bThreshWithOpenCV = !bThreshWithOpenCV;
+			break;
+			
+		case'p':
+			bDrawPointCloud = !bDrawPointCloud;
+			break;
+			
+		case '>':
+		case '.':
+			farThreshold ++;
+			if (farThreshold > 255) farThreshold = 255;
+			break;
+			
+		case '<':
+		case ',':
+			farThreshold --;
+			if (farThreshold < 0) farThreshold = 0;
+			break;
+			
+		case '+':
+		case '=':
+			nearThreshold ++;
+			if (nearThreshold > 255) nearThreshold = 255;
+			break;
+			
+		case '-':
+			nearThreshold --;
+			if (nearThreshold < 0) nearThreshold = 0;
+			break;
+			
+		case 'w':
+			kinect.enableDepthNearValueWhite(!kinect.isDepthNearValueWhite());
+			break;
+			
+		case 'o':
+			kinect.setCameraTiltAngle(angle); // go back to prev tilt
+			kinect.open();
+			break;
+			
+		case 'c':
+			kinect.setCameraTiltAngle(0); // zero the tilt
+			kinect.close();
+			break;
+			
+		case OF_KEY_UP:
+			angle++;
+			if(angle>30) angle=30;
+			kinect.setCameraTiltAngle(angle);
+			break;
+			
+		case OF_KEY_DOWN:
+			angle--;
+			if(angle<-30) angle=-30;
+			kinect.setCameraTiltAngle(angle);
+			break;
+		case 's':
+				soundStream.start();
+			break;
+			
+		case 'e':
+				soundStream.stop();
+			break;
+	}
+}
+
+//--------------------------------------------------------------
+void testApp::mouseDragged(int x, int y, int button)
+{}
+
+//--------------------------------------------------------------
+void testApp::mousePressed(int x, int y, int button)
+{}
+
+//--------------------------------------------------------------
+void testApp::mouseReleased(int x, int y, int button)
+{}
+
+//--------------------------------------------------------------
+void testApp::windowResized(int w, int h)
+{}
