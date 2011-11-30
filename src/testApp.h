@@ -39,19 +39,14 @@ public:
 	
 	ofSoundStream soundStream;
 
-	
 	ofxKinect kinect;
-	
-#ifdef USE_TWO_KINECTS
-	ofxKinect kinect2;
-#endif
 	
 	ofxCvColorImage colorImg;
 	
 	ofxCvGrayscaleImage grayImage; // grayscale depth image
 	ofxCvGrayscaleImage grayThreshNear; // the near thresholded image
 	ofxCvGrayscaleImage grayThreshFar; // the far thresholded image
-	
+
 	ofxCvContourFinder contourFinder;
 	
 	bool bThreshWithOpenCV;
@@ -70,4 +65,7 @@ private:
 	ofImage ocean;
 	ofImage desert;
 	ofImage mask;
+
+	unsigned char * frames;
+	int numPixels; 
 };

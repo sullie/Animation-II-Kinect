@@ -15,16 +15,18 @@ void testApp::setup() {
 	//kinect.init(false, false); // disable video image (faster fps)
 	kinect.open();
 	
-#ifdef USE_TWO_KINECTS
-	kinect2.init();
-	kinect2.open();
-#endif
-	
+	// Allocatins space for images
 	colorImg.allocate(kinect.width, kinect.height);
 	grayImage.allocate(kinect.width, kinect.height);
 	grayThreshNear.allocate(kinect.width, kinect.height);
 	grayThreshFar.allocate(kinect.width, kinect.height);
+
+	//Allocating memory for mask 
+	mask.allocate(640, 480,  OF_IMAGE_COLOR);
 	
+	numPixels= 640 * 480;
+	frames = new unsigned char[256*numPixels*3];
+
 	nearThreshold = 230;
 	farThreshold = 70;
 	bThreshWithOpenCV = true;
@@ -75,27 +77,22 @@ void testApp::setup() {
 	shader.setUniformTexture("tex2", desert.getTextureReference(), 2);
 	shader.end();
 
-	// from setup  
-	mask.allocate(640, 480, OF_IMAGE_GRAYSCALE);
+
 }
 
 //--------------------------------------------------------------
 void testApp::update() {
 	
 	ofBackground(255);
-	
 	kinect.update();
-
-	// Create mask image for shader
-	unsigned char * pixels = grayImage.getPixels();
-	mask.setFromPixels(pixels, 640, 480, OF_IMAGE_GRAYSCALE, false);
 	
 	// there is a new frame and we are connected
 	if(kinect.isFrameNew()) {
 		
 		// load grayscale depth image from the kinect source
 		grayImage.setFromPixels(kinect.getDepthPixels(), kinect.width, kinect.height);
-		
+		colorImg.setFromPixels(kinect.getPixels(), kinect.width, kinect.height);
+	
 		// we do two thresholds - one for the far plane and one for the near plane
 		// we then do a cvAnd to get the pixels which are a union of the two thresholds
 		if(bThreshWithOpenCV) {
@@ -127,10 +124,6 @@ void testApp::update() {
 		contourFinder.findContours(grayImage, 10, (kinect.width*kinect.height)/2, 20, false);
 	}
 	
-#ifdef USE_TWO_KINECTS
-	kinect2.update();
-#endif
-	
 	//lets scale the vol up to a 0-1 range 
 	scaledVol = ofMap(smoothedVol, 0.0, 0.17, 0.0, 1.0, true);
 	
@@ -149,7 +142,30 @@ void testApp::draw()
 {
 	ofSetColor(255);
 
-	desert.draw(0, 0);
+	// Create mask image for shader
+	unsigned char * pixels = colorImg.getPixels();
+	mask.setFromPixels(pixels, 640, 480, OF_IMAGE_COLOR,true);
+	
+	/* this code will get pizels of image. once u update it it wont show it in output.
+		experiment */
+	/*
+	unsigned char* maskPixels = mask.getPixels();
+	unsigned char* grayPixels = grayImage.getPixels();
+	for (int i = 0; i < numPixels; i++) 
+	{
+		int depth = grayPixels[i];
+		int destOffset = i*3;
+		int framesOffset = depth*numPixels*3 + destOffset;
+			
+		maskPixels[destOffset] = frames[framesOffset];
+		maskPixels[destOffset+1] = frames[framesOffset+1];
+		maskPixels[destOffset+2] = frames[framesOffset+2];
+	}
+	
+	mask.update();
+	*/
+	//mask.draw(0,0);
+	//desert.draw(0, 0);
 
 	shader.begin();
 	shader.setUniformTexture("tex1", mask.getTextureReference(), 1);
@@ -164,6 +180,8 @@ void testApp::draw()
 	desert.getTextureReference().bind();
 
 	glBegin(GL_QUADS);
+		
+		float maskOffset = 15 - mouseY;  
 		glMultiTexCoord2d(GL_TEXTURE0_ARB, 0, 0);
 		glMultiTexCoord2d(GL_TEXTURE1_ARB, 0, 0);
 		glMultiTexCoord2d(GL_TEXTURE2_ARB, 0, 0);
@@ -171,16 +189,16 @@ void testApp::draw()
 
 		glMultiTexCoord2d(GL_TEXTURE0_ARB, ocean.getWidth(), 0);
 		glMultiTexCoord2d(GL_TEXTURE1_ARB, mask.getWidth(), 0);
-		glMultiTexCoord2d(GL_TEXTURE2_ARB, desert.getWidth(), 0);
+		glMultiTexCoord2d(GL_TEXTURE2_ARB, desert.getWidth(),0);
 		glVertex2f(ofGetWidth(), 0);
 
 		glMultiTexCoord2d(GL_TEXTURE0_ARB, ocean.getWidth(), ocean.getHeight());
 		glMultiTexCoord2d(GL_TEXTURE1_ARB, mask.getWidth(), mask.getHeight());
-		glMultiTexCoord2d(GL_TEXTURE2_ARB, desert.getWidth(), desert.getHeight());
+		glMultiTexCoord2d(GL_TEXTURE2_ARB, desert.getWidth(), desert.getHeight() );
 		glVertex2f(ofGetWidth(), ofGetHeight());
 
 		glMultiTexCoord2d(GL_TEXTURE0_ARB, 0, ocean.getHeight());
-		glMultiTexCoord2d(GL_TEXTURE1_ARB, 0, mask.getHeight());
+		glMultiTexCoord2d(GL_TEXTURE1_ARB, 0, mask.getHeight() );
 		glMultiTexCoord2d(GL_TEXTURE2_ARB, 0, desert.getHeight());
 		glVertex2f(0, ofGetHeight());
 	glEnd();
