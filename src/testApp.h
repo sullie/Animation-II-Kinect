@@ -60,6 +60,7 @@ public:
     // used for viewing the point cloud
 	ofEasyCam easyCam;
 	ofShader shader;
+	bool reloadShaders;
 
 private:
 	ofImage ocean;

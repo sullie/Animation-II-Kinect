@@ -85,6 +85,13 @@ void testApp::update() {
 	
 	ofBackground(255);
 	kinect.update();
+
+	if (reloadShaders)
+	{
+		shader.load("shaders/test.vert", "shaders/test.frag");
+		printf("Reloaded the shaders");
+		reloadShaders = false;
+	}
 	
 	// there is a new frame and we are connected
 	if(kinect.isFrameNew()) {
@@ -153,10 +160,10 @@ void testApp::draw()
 	glActiveTexture(GL_TEXTURE0_ARB);
 	ocean.getTextureReference().bind();
 
-	glActiveTexture(GL_TEXTURE2_ARB);
+	glActiveTexture(GL_TEXTURE1_ARB);
 	mask.getTextureReference().bind();
 
-	glActiveTexture(GL_TEXTURE1_ARB);
+	glActiveTexture(GL_TEXTURE2_ARB);
 	desert.getTextureReference().bind();
 
 	glBegin(GL_QUADS);
@@ -364,12 +371,17 @@ void testApp::keyPressed (int key) {
 			if(angle<-30) angle=-30;
 			kinect.setCameraTiltAngle(angle);
 			break;
+
 		case 's':
-				soundStream.start();
+			soundStream.start();
 			break;
 			
 		case 'e':
-				soundStream.stop();
+			soundStream.stop();
+			break;
+
+		case 'r':
+			reloadShaders = true;
 			break;
 	}
 }
