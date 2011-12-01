@@ -22,7 +22,7 @@ void testApp::setup() {
 	grayThreshFar.allocate(kinect.width, kinect.height);
 
 	//Allocating memory for mask 
-	mask.allocate(640, 480,  OF_IMAGE_COLOR);
+	mask.allocate(640, 480, OF_IMAGE_GRAYSCALE);  //OF_IMAGE_COLOR
 	
 	numPixels= 640 * 480;
 	frames = new unsigned char[256*numPixels*3];
@@ -143,45 +143,24 @@ void testApp::draw()
 	ofSetColor(255);
 
 	// Create mask image for shader
-	unsigned char * pixels = colorImg.getPixels();
-	mask.setFromPixels(pixels, 640, 480, OF_IMAGE_COLOR,true);
+	unsigned char * pixels = grayImage.getPixels();
+	mask.setFromPixels(pixels, 640, 480, OF_IMAGE_GRAYSCALE,true);
 	
-	/* this code will get pizels of image. once u update it it wont show it in output.
-		experiment */
-	/*
-	unsigned char* maskPixels = mask.getPixels();
-	unsigned char* grayPixels = grayImage.getPixels();
-	for (int i = 0; i < numPixels; i++) 
-	{
-		int depth = grayPixels[i];
-		int destOffset = i*3;
-		int framesOffset = depth*numPixels*3 + destOffset;
-			
-		maskPixels[destOffset] = frames[framesOffset];
-		maskPixels[destOffset+1] = frames[framesOffset+1];
-		maskPixels[destOffset+2] = frames[framesOffset+2];
-	}
-	
-	mask.update();
-	*/
-	//mask.draw(0,0);
-	//desert.draw(0, 0);
-
+	// Starting shader
 	shader.begin();
 	shader.setUniformTexture("tex1", mask.getTextureReference(), 1);
 	
 	glActiveTexture(GL_TEXTURE0_ARB);
 	ocean.getTextureReference().bind();
 
-	glActiveTexture(GL_TEXTURE1_ARB);
+	glActiveTexture(GL_TEXTURE2_ARB);
 	mask.getTextureReference().bind();
 
-	glActiveTexture(GL_TEXTURE2_ARB);
+	glActiveTexture(GL_TEXTURE1_ARB);
 	desert.getTextureReference().bind();
 
 	glBegin(GL_QUADS);
 		
-		float maskOffset = 15 - mouseY;  
 		glMultiTexCoord2d(GL_TEXTURE0_ARB, 0, 0);
 		glMultiTexCoord2d(GL_TEXTURE1_ARB, 0, 0);
 		glMultiTexCoord2d(GL_TEXTURE2_ARB, 0, 0);
