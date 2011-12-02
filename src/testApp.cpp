@@ -155,7 +155,9 @@ void testApp::draw()
 	
 	// Starting shader
 	shader.begin();
+    shader.setUniformTexture("tex", ocean.getTextureReference(), 0);
 	shader.setUniformTexture("tex1", mask.getTextureReference(), 1);
+	shader.setUniformTexture("tex2", desert.getTextureReference(), 2);
 	
 	glActiveTexture(GL_TEXTURE0_ARB);
 	ocean.getTextureReference().bind();
