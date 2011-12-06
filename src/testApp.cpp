@@ -301,7 +301,7 @@ void testApp::draw()
 	
 	for(int i=0; i<redCircles.size(); i++)
 	{
-		redCircles[i].addForce(-20.0*redCircles[i].density,5);
+		redCircles[i].addForce(10.0*redCircles[i].density,5);
 		ofSetHexColor(0xFF0033);
 		redCircles[i].draw();
 	}
@@ -430,7 +430,7 @@ void testApp::createCircle()
 	redCircle.setup(myWorld, mouseX, mouseY, circleSize);
 	redCircles.push_back(redCircle);
 	ofxBox2dCircle blueCircle;
-	blueCircle.setPhysics(3.0, 0.53, 0.1);
+	blueCircle.setPhysic(3.0, 0.53, 0.1);
 	//int circleSize=10; 
 	
 	//circleSize = ofMap(circleSize, 0, 600, 1, 8, true);
