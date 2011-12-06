@@ -92,7 +92,6 @@ void testApp::update() {
 	
 	myWorld->Step((1.0f/30.0f), 10, 5);
 	
-	//myBlueWorld->Step((1.0f/30.0f), 10, 5);
 	ofBackground(255);
 
 	if (reloadShaders)
