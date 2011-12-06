@@ -137,10 +137,9 @@ public:
 	vector <ofxPoint2f> contourSimple;*/
 	
 //--------------------------------------------------------------------------------------------------------------
-private:
 	ofImage ocean;
 	ofImage desert;
 	ofImage mask;
 	
-
+	ofVideoPlayer sheepVideo;
 };
