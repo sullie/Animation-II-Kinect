@@ -84,6 +84,12 @@ void testApp::setup() {
 	// Box	2D
 	initBox2D();
 
+	// ElectricSheep video
+	sheepVideo.loadMovie("videos/Electric Sheep Fractals.mp4");
+	sheepVideo.play();
+	sheepVideo.setLoopState(OF_LOOP_PALINDROME);
+	ofSetBackgroundAuto(false);
+    	ofSetFrameRate(30);
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -158,7 +164,7 @@ void testApp::update() {
 
 	}
 	
-
+	sheepVideo.update();
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -173,12 +179,12 @@ void testApp::draw()
 	
 	// Starting shader
 	shader.begin();
-	shader.setUniformTexture("tex", ocean.getTextureReference(), 0);
+	shader.setUniformTexture("tex", sheepVideo.getTextureReference(), 0);
 	shader.setUniformTexture("tex1", mask.getTextureReference(), 1);
 	shader.setUniformTexture("tex2", desert.getTextureReference(), 2);
 	
 	glActiveTexture(GL_TEXTURE0_ARB);
-	ocean.getTextureReference().bind();
+	sheepVideo.getTextureReference().bind();
 
 	glActiveTexture(GL_TEXTURE1_ARB);
 	mask.getTextureReference().bind();
@@ -193,17 +199,17 @@ void testApp::draw()
 		glMultiTexCoord2d(GL_TEXTURE2_ARB, 0, 0);
 		glVertex2f(0, 0);
 
-		glMultiTexCoord2d(GL_TEXTURE0_ARB, ocean.getWidth(), 0);
+		glMultiTexCoord2d(GL_TEXTURE0_ARB, sheepVideo.getWidth(), 0);
 		glMultiTexCoord2d(GL_TEXTURE1_ARB, mask.getWidth(), 0);
 		glMultiTexCoord2d(GL_TEXTURE2_ARB, desert.getWidth(),0);
 		glVertex2f(ofGetWidth(), 0);
 
-		glMultiTexCoord2d(GL_TEXTURE0_ARB, ocean.getWidth(), ocean.getHeight());
+		glMultiTexCoord2d(GL_TEXTURE0_ARB, sheepVideo.getWidth(), sheepVideo.getHeight());
 		glMultiTexCoord2d(GL_TEXTURE1_ARB, mask.getWidth(), mask.getHeight());
 		glMultiTexCoord2d(GL_TEXTURE2_ARB, desert.getWidth(), desert.getHeight() );
 		glVertex2f(ofGetWidth(), ofGetHeight());
 
-		glMultiTexCoord2d(GL_TEXTURE0_ARB, 0, ocean.getHeight());
+		glMultiTexCoord2d(GL_TEXTURE0_ARB, 0, sheepVideo.getHeight());
 		glMultiTexCoord2d(GL_TEXTURE1_ARB, 0, mask.getHeight() );
 		glMultiTexCoord2d(GL_TEXTURE2_ARB, 0, desert.getHeight());
 		glVertex2f(0, ofGetHeight());
@@ -218,7 +224,7 @@ void testApp::draw()
 	mask.getTextureReference().unbind();
 
 	glActiveTexture(GL_TEXTURE0_ARB);
-	ocean.getTextureReference().unbind();
+	sheepVideo.getTextureReference().unbind();
 
 	shader.end();
 	
