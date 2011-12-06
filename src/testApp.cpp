@@ -51,7 +51,7 @@ void testApp::setup() {
 	// 256 samples per buffer
 	// 4 num buffers (latency)
 	
-plotHeight = 128;
+	plotHeight = 128;
 	bufferSize = 512;
     
 	fft = ofxFft::create(bufferSize, OF_FFT_WINDOW_HAMMING);
@@ -90,8 +90,9 @@ plotHeight = 128;
 //--------------------------------------------------------------------------------------------------------------
 void testApp::update() {
 	
-	myRedWorld->Step((1.0f/30.0f), 10, 5);
-	myBlueWorld->Step((1.0f/30.0f), 10, 5);
+	myWorld->Step((1.0f/30.0f), 10, 5);
+	
+	//myBlueWorld->Step((1.0f/30.0f), 10, 5);
 	ofBackground(255);
 
 	if (reloadShaders)
@@ -301,6 +302,7 @@ void testApp::draw()
 	
 	for(int i=0; i<redCircles.size(); i++)
 	{
+		redCircles[i].addForce(-20.0*redCircles[i].density,5);
 		ofSetHexColor(0xFF0033);
 		redCircles[i].draw();
 	}
@@ -376,13 +378,10 @@ void testApp::initBox2D()
 {
 	
 //world setup
-	myRedWorld = new b2World(b2Vec2(0.0f, 10.0f)); //(gravity);
-	myBlueWorld = new b2World(b2Vec2(0.0f, 5.0f)); //(gravity);
+	myWorld = new b2World(b2Vec2(0.0f, 10.0f)); //(gravity);
 
-	b2BodyDef bdR;
-	b2BodyDef bdB;
-	groundRed = myRedWorld->CreateBody(&bdR);	
-	groundBlue = myBlueWorld->CreateBody(&bdB);	
+	b2BodyDef bd;
+	ground = myWorld->CreateBody(&bd);	
 	b2EdgeShape shapeR, shapeL, shapeT, shapeB;
 	
 	//right
@@ -390,38 +389,32 @@ void testApp::initBox2D()
 	shapeR.Set(b2Vec2(ofGetWidth()/B2SCALE, 0), 
 			   b2Vec2(ofGetWidth()/B2SCALE, ofGetHeight()/B2SCALE));
 	rightDef.shape = &shapeR;
-	groundRed->CreateFixture(&rightDef);
-	groundBlue->CreateFixture(&rightDef);
+	ground->CreateFixture(&rightDef);
 
 	//left
 	b2FixtureDef leftDef;
 	shapeL.Set(b2Vec2(0, 0), 
 			   b2Vec2(0, ofGetHeight()/B2SCALE));
 	leftDef.shape = &shapeL;
-	groundRed->CreateFixture(&leftDef);
-	groundBlue->CreateFixture(&leftDef);
+	ground->CreateFixture(&leftDef);
 	
 	//top
 	b2FixtureDef topDef;
 	shapeT.Set(b2Vec2(0, 0), 
 			   b2Vec2(ofGetWidth()/B2SCALE, 0));
 	topDef.shape = &shapeT;
-	groundRed->CreateFixture(&topDef);
-	groundBlue->CreateFixture(&topDef);
+	ground->CreateFixture(&topDef);
 	
 	//bottom
 	b2FixtureDef bottomDef;
 	shapeB.Set(b2Vec2(0, ofGetHeight()/B2SCALE), 
 			   b2Vec2(ofGetWidth()/B2SCALE, ofGetHeight()/B2SCALE));
 	bottomDef.shape = &shapeB;
-	groundRed->CreateFixture(&bottomDef);
-	groundBlue->CreateFixture(&bottomDef);
+	ground->CreateFixture(&bottomDef);
     
     //create new collision listenter
-	listenerR = new MyListener();
-	listenerB = new MyListener();
-	myRedWorld->SetContactListener(listenerR);
-	myBlueWorld->SetContactListener(listenerB);
+	listener = new MyListener();
+	myWorld->SetContactListener(listener);
 
 }
 
@@ -435,16 +428,15 @@ void testApp::createCircle()
 	
 	//circleSize = ofMap(circleSize, 0, 600, 1, 8, true);
 
-	redCircle.setup(myRedWorld, mouseX, mouseY, circleSize);
+	redCircle.setup(myWorld, mouseX, mouseY, circleSize);
 	redCircles.push_back(redCircle);
-
 	ofxBox2dCircle blueCircle;
 	blueCircle.setPhysics(3.0, 0.53, 0.1);
 	//int circleSize=10; 
 	
 	//circleSize = ofMap(circleSize, 0, 600, 1, 8, true);
 
-	blueCircle.setup(myBlueWorld, mouseX, mouseY, circleSize);
+	blueCircle.setup(myWorld, mouseX, mouseY, circleSize);
 	blueCircles.push_back(blueCircle);
 }
 //--------------------------------------------------------------------------------------------------------------
@@ -541,15 +533,12 @@ void testApp::makeOutlines(){
 		b2BodyDef outlineBodyDef;
 		outlineBodyDef.userData = outlineDataP;
 		
-		b2Body* outlineBodyR = myRedWorld->CreateBody(&outlineBodyDef);
-		b2Body* outlineBodyB = myBlueWorld->CreateBody(&outlineBodyDef);
+		b2Body* outlineBody = myWorld->CreateBody(&outlineBodyDef);
 
-		outlineBodyR->CreateFixture(&outlineShapeDef);
-		outlineBodyB->CreateFixture(&outlineShapeDef);
+		outlineBody->CreateFixture(&outlineShapeDef);
 		
-		objects.push_back( outlineBodyR );
-		outlineBodyR = NULL;
-		outlineBodyB = NULL;
+		objects.push_back( outlineBody );
+		outlineBody = NULL;
 		outlineDataP = NULL;	
 	}
 	
@@ -572,7 +561,7 @@ void testApp::spawnParticles( float brickX, float brickY ){
         particleBodyDef.position.Set(brickX, brickY);
 		
         particleBodyDef.userData = particleP;
-        b2Body *particleBody = myRedWorld->CreateBody(&particleBodyDef);
+        b2Body *particleBody = myWorld->CreateBody(&particleBodyDef);
 		
 		
 		b2CircleShape circle;
@@ -601,8 +590,7 @@ void testApp::doDestroy(){
 		if (d != NULL ) {
 			delete d;
 		}
-		myRedWorld->DestroyBody( b );
-		//myBlueWorld->DestroyBody( b );
+		myWorld->DestroyBody( b );
 	}
 	
 	toDestroy.clear();

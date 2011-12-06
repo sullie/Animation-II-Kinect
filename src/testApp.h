@@ -95,21 +95,17 @@ public:
 	vector <ofxBox2dPolygon> polygons;	  //defalut box2d polgons
 	vector <ofPolyline>	lines;		 //default box2d lines (hacked)
 	
-	b2World *myRedWorld;           //our work space
-	b2World *myBlueWorld;           //our work space
-	b2Body*	groundRed;
-	b2Body*	groundBlue;
+	b2World *myWorld;           //our work space
+	b2Body*	ground;
 
 	vector<ofxBox2dRect> worldBlobs;   //vextor of blocks in our work space
 	vector <ofPolyline> lineStrips;
-
 	
 	vector <b2Body*> toDestroy;
 	vector <b2Body*> objects;
 	vector <ofPolyline> outlines;
 	
-	MyListener*	listenerR;
-	MyListener*	listenerB;
+	MyListener*	listener;
 	
 //--------------------------------------------------------------------------------------------------------------
 	/*
