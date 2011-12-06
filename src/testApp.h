@@ -106,7 +106,27 @@ public:
 	vector <ofPolyline> outlines;
 	
 	MyListener*	listener;
-	
+
+	// FILTERING VARIABLES
+	const static uint16 CATEGORY_GROUND = 0x0010;
+
+    const static uint16 CATEGORY_RED_BALLS = 0x0001; // 0000000000000010 in binary
+	const static uint16 CATEGORY_BLUE_BALLS = 0x0002;
+	const static uint16  CATEGORY_YELLOW_BALLS= 0x0004;
+	const static uint16 CATEGORY_GREEN_BALLS = 0x0008;
+
+	const static uint16 MASK_RED_BALLS = CATEGORY_RED_BALLS | CATEGORY_GROUND ;
+	const static uint16 MASK_BLUE_BALLS = CATEGORY_BLUE_BALLS | CATEGORY_GROUND ;
+	const static uint16 MASK_YELLOW_BALLS = CATEGORY_YELLOW_BALLS | CATEGORY_GROUND ;
+	const static uint16 MASK_GREEN_BALLS = CATEGORY_GREEN_BALLS | CATEGORY_GROUND ;
+	const static int MASK_GROUND= -1;
+
+	const static int RED_GROUP=0;
+	const static int BLUE_GROUP=1;
+	const static int YELLOW_GROUP=2;
+	const static int GREEN_GROUP=3;
+
+
 //--------------------------------------------------------------------------------------------------------------
 	/*
 	//Simple contour

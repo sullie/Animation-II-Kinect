@@ -1,6 +1,5 @@
 #include "testApp.h"
 
-
 int numBlobs = 0;
 float smoothPct = 0.75f;
 int numSmoothContours =0;
@@ -256,7 +255,7 @@ void testApp::draw()
 			if (data->tag == 4 ){ //particles
 				ofSetColor(data->r, data->g, data->b);
 				ofCircle(b->GetPosition().x*B2SCALE, b->GetPosition().y*B2SCALE, data->radius);
-                cout<< b->GetPosition().x*B2SCALE << " " << b->GetPosition().y*B2SCALE << endl;
+               // cout<< b->GetPosition().x*B2SCALE << " " << b->GetPosition().y*B2SCALE << endl;
 			}
             
         }        
@@ -301,7 +300,9 @@ void testApp::draw()
 	
 	for(int i=0; i<redCircles.size(); i++)
 	{
-		redCircles[i].addForce(10.0*redCircles[i].density,5);
+		//ofVec2f *d  = new ofVec2f(0.0,-20.0*redCircles[i].density);  //adding force gto change gravity
+		//redCircles[i].addForce(*d,5);
+
 		ofSetHexColor(0xFF0033);
 		redCircles[i].draw();
 	}
@@ -375,7 +376,6 @@ void testApp::exit() {
 //--------------------------------------------------------------------------------------------------------------
 void testApp::initBox2D()
 {
-	
 //world setup
 	myWorld = new b2World(b2Vec2(0.0f, 10.0f)); //(gravity);
 
@@ -388,6 +388,8 @@ void testApp::initBox2D()
 	shapeR.Set(b2Vec2(ofGetWidth()/B2SCALE, 0), 
 			   b2Vec2(ofGetWidth()/B2SCALE, ofGetHeight()/B2SCALE));
 	rightDef.shape = &shapeR;
+	rightDef.filter.categoryBits = CATEGORY_GROUND;
+	rightDef.filter.maskBits = MASK_GROUND;
 	ground->CreateFixture(&rightDef);
 
 	//left
@@ -395,6 +397,8 @@ void testApp::initBox2D()
 	shapeL.Set(b2Vec2(0, 0), 
 			   b2Vec2(0, ofGetHeight()/B2SCALE));
 	leftDef.shape = &shapeL;
+	leftDef.filter.categoryBits = CATEGORY_GROUND;
+	leftDef.filter.maskBits = MASK_GROUND;
 	ground->CreateFixture(&leftDef);
 	
 	//top
@@ -402,6 +406,8 @@ void testApp::initBox2D()
 	shapeT.Set(b2Vec2(0, 0), 
 			   b2Vec2(ofGetWidth()/B2SCALE, 0));
 	topDef.shape = &shapeT;
+	topDef.filter.categoryBits = CATEGORY_GROUND;
+	topDef.filter.maskBits = MASK_GROUND;
 	ground->CreateFixture(&topDef);
 	
 	//bottom
@@ -409,6 +415,8 @@ void testApp::initBox2D()
 	shapeB.Set(b2Vec2(0, ofGetHeight()/B2SCALE), 
 			   b2Vec2(ofGetWidth()/B2SCALE, ofGetHeight()/B2SCALE));
 	bottomDef.shape = &shapeB;
+	bottomDef.filter.categoryBits = CATEGORY_GROUND;
+	bottomDef.filter.maskBits = MASK_GROUND;
 	ground->CreateFixture(&bottomDef);
     
     //create new collision listenter
@@ -422,20 +430,22 @@ void testApp::createCircle()
 {
 
 	ofxBox2dCircle redCircle;
+	redCircle.fixture.filter.categoryBits = CATEGORY_RED_BALLS;
+	redCircle.fixture.filter.maskBits = MASK_RED_BALLS;
+	//redCircle.fixture.filter.groupIndex  = RED_GROUP;
+
 	redCircle.setPhysics(3.0, 0.53, 0.1);
 	int circleSize=10; 
-	
-	//circleSize = ofMap(circleSize, 0, 600, 1, 8, true);
-
 	redCircle.setup(myWorld, mouseX, mouseY, circleSize);
 	redCircles.push_back(redCircle);
-	ofxBox2dCircle blueCircle;
-	blueCircle.setPhysic(3.0, 0.53, 0.1);
-	//int circleSize=10; 
 	
-	//circleSize = ofMap(circleSize, 0, 600, 1, 8, true);
+	ofxBox2dCircle blueCircle;
+	blueCircle.fixture.filter.categoryBits = CATEGORY_BLUE_BALLS;
+	blueCircle.fixture.filter.maskBits = MASK_BLUE_BALLS;
+	//blueCircle.fixture.filter.groupIndex  = BLUE_GROUP;
 
-	blueCircle.setup(myWorld, mouseX, mouseY, circleSize);
+	blueCircle.setPhysics(3.0, 0.53, 0.1);
+	blueCircle.setup(myWorld, mouseX + 5, mouseY, circleSize);
 	blueCircles.push_back(blueCircle);
 }
 //--------------------------------------------------------------------------------------------------------------
@@ -521,7 +531,9 @@ void testApp::makeOutlines(){
         
 		b2FixtureDef outlineShapeDef;
 		outlineShapeDef.shape=&outlineLoopShape;
-		
+		outlineShapeDef.filter.categoryBits = CATEGORY_GROUND;
+		outlineShapeDef.filter.maskBits = MASK_GROUND;
+
 		Data* outlineDataP = new Data;
 		outlineDataP->setupCustomData(2);
 		outlineDataP->r = 128;
@@ -531,6 +543,7 @@ void testApp::makeOutlines(){
 		
 		b2BodyDef outlineBodyDef;
 		outlineBodyDef.userData = outlineDataP;
+
 		
 		b2Body* outlineBody = myWorld->CreateBody(&outlineBodyDef);
 
@@ -557,7 +570,7 @@ void testApp::spawnParticles( float brickX, float brickY ){
 		
 		b2BodyDef particleBodyDef;
         particleBodyDef.type = b2_dynamicBody;
-        particleBodyDef.position.Set(brickX, brickY);
+        particleBodyDef.position.Set(brickX/B2SCALE, brickY/B2SCALE);
 		
         particleBodyDef.userData = particleP;
         b2Body *particleBody = myWorld->CreateBody(&particleBodyDef);
