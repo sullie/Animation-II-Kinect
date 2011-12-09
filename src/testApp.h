@@ -43,7 +43,10 @@ public:
 	void makeOutlines();
 	void spawnParticles( float brickX, float brickY );
 	void doDestroy();
+	void checkDestroy();
 	void createCircle();	
+	void createBC();
+	void createRC();
 
 	// Audio Functions
 	void audioReceived(float* input, int bufferSize, int nChannels);
@@ -128,15 +131,7 @@ public:
 
 
 //--------------------------------------------------------------------------------------------------------------
-	/*
-	//Simple contour
-	contourSimplify contourSimp;
-	vector<vector <ofxPoint2f> > simpleContours;
-	vector <ofxPoint2f> contourReg;
-	vector <ofxPoint2f> contourSmooth;
-	vector <ofxPoint2f> contourSimple;*/
-	
-//--------------------------------------------------------------------------------------------------------------
+
 	ofImage ocean;
 	ofImage desert;
 	ofImage mask;

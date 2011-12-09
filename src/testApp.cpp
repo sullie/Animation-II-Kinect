@@ -71,7 +71,7 @@ void testApp::setup() {
 
 	// Test images
 	ocean.loadImage("images/ocean.jpg");
-	desert.loadImage("images/desert.jpg");
+	desert.loadImage("images/back.jpg");
 
 	// Set up shaders for the mask
 	shader.load("shaders/test.vert", "shaders/test.frag");
@@ -85,7 +85,8 @@ void testApp::setup() {
 	initBox2D();
 
 	// ElectricSheep video
-	sheepVideo.loadMovie("videos/Electric Sheep Fractals.mp4");
+	//sheepVideo.loadMovie("videos/Electric Sheep Fractals.mp4");
+	sheepVideo.loadMovie("videos/Animation2 video.avi");
 	sheepVideo.play();
 	sheepVideo.setLoopState(OF_LOOP_PALINDROME);
 	ofSetBackgroundAuto(false);
@@ -164,7 +165,9 @@ void testApp::update() {
 
 	}
 	
+	checkDestroy();
 	sheepVideo.update();
+
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -229,27 +232,18 @@ void testApp::draw()
 	shader.end();
 	
 	
-	if (doDrawBox2DCountours)
-	{	
-		ofPushMatrix();
-		ofScale(1.25, 1.3, 0);
-		for(int i=0; i<lineStrips.size(); i++)
-		{
-			ofSetHexColor(0x000000);
-			lineStrips[i].draw();
-		}
-		ofPopMatrix();
-	}
 	
 	//start draw from outlines
-    ofSetColor(255,0,0);
+    /*ofSetColor(255,0,0);
     ofPushMatrix();
-    ofScale(1.25, 1.25, 0);  //1024x768	ofScale(1.6, 1.6, 0);
+   // ofScale(1.25, 1.25, 0); 
+	1024x768	ofScale(1.6, 1.6, 0);
 	for (int i=0;i<outlines.size();i++)
 	{
 		outlines[i].draw();
 	}
-	ofPopMatrix();
+	ofPopMatrix(); */
+	
 	//end draw from outlines
 
   //start draw everything else box2d
@@ -303,19 +297,20 @@ void testApp::draw()
 		easyCam.end();
 	} 
 
-	
+	ofFill();
 	for(int i=0; i<redCircles.size(); i++)
 	{
 		//ofVec2f *d  = new ofVec2f(0.0,-20.0*redCircles[i].density);  //adding force gto change gravity
 		//redCircles[i].addForce(*d,5);
-
-		ofSetHexColor(0xFF0033);
+		Data *data = (Data*)redCircles[i].bodyDef.userData;
+		ofSetColor(data->r,data->g,data->b,150);  //reds
 		redCircles[i].draw();
 	}
 
 	for(int i=0; i<blueCircles.size(); i++)
 	{
-		ofSetHexColor(0x3300FF);
+		Data *data = (Data*)blueCircles[i].bodyDef.userData;
+		ofSetColor(data->r,data->g,data->b,150);  //blues
 		blueCircles[i].draw();
 	}
 	
@@ -418,7 +413,7 @@ void testApp::initBox2D()
 	
 	//bottom
 	b2FixtureDef bottomDef;
-	shapeB.Set(b2Vec2(0, ofGetHeight()/B2SCALE), 
+	shapeB.Set(b2Vec2(0, ofGetHeight()*1.6/B2SCALE), 
 			   b2Vec2(ofGetWidth()/B2SCALE, ofGetHeight()/B2SCALE));
 	bottomDef.shape = &shapeB;
 	bottomDef.filter.categoryBits = CATEGORY_GROUND;
@@ -428,7 +423,7 @@ void testApp::initBox2D()
     //create new collision listenter
 	listener = new MyListener();
 	myWorld->SetContactListener(listener);
-
+	
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -440,76 +435,85 @@ void testApp::createCircle()
 	redCircle.fixture.filter.maskBits = MASK_RED_BALLS;
 	//redCircle.fixture.filter.groupIndex  = RED_GROUP;
 
-	redCircle.setPhysics(3.0, 0.53, 0.1);
-	int circleSize=10; 
-	redCircle.setup(myWorld, mouseX, mouseY, circleSize);
+	Data* ballR = new Data;
+	ballR->setupCustomData(4);
+	ballR->radius = ofRandom(5.0, 20.0);
+	ballR->setupCustomColorR(ofRandom(0, 4));
+
+	redCircle.bodyDef.userData = ballR;
+	int bounce=ofRandom(0.5, 4.0);
+	int densety = ofRandom(3, 5);
+	redCircle.setPhysics(densety,bounce, 0.1);
+
+	redCircle.setup(myWorld, mouseX, mouseY, ballR->radius);
 	redCircles.push_back(redCircle);
-	
+	  
 	ofxBox2dCircle blueCircle;
 	blueCircle.fixture.filter.categoryBits = CATEGORY_BLUE_BALLS;
 	blueCircle.fixture.filter.maskBits = MASK_BLUE_BALLS;
 	//blueCircle.fixture.filter.groupIndex  = BLUE_GROUP;
 
-	blueCircle.setPhysics(3.0, 0.53, 0.1);
-	blueCircle.setup(myWorld, mouseX + 5, mouseY, circleSize);
+	Data* ballB = new Data;
+	ballB->setupCustomData(4);
+	ballB->radius = ofRandom(5.0, 20.0);
+	ballB->setupCustomColorB();
+
+	blueCircle.bodyDef.userData = ballB;
+	bounce=ofRandom(0.5, 2.0); 
+	densety = ofRandom(3, 5);
+
+	blueCircle.setPhysics(densety, bounce, 0.1);
+	blueCircle.setup(myWorld, mouseX + 10, mouseY, ballB->radius);
 	blueCircles.push_back(blueCircle);
 }
+void testApp::createRC()
+{
+	
+	ofxBox2dCircle redCircle;
+	redCircle.fixture.filter.categoryBits = CATEGORY_RED_BALLS;
+	redCircle.fixture.filter.maskBits = MASK_RED_BALLS;
+	//redCircle.fixture.filter.groupIndex  = RED_GROUP;
+
+	Data* ballR = new Data;
+	ballR->setupCustomData(4);
+	ballR->radius = ofRandom(5.0, 20.0);
+	ballR->setupCustomColorR(ofRandom(0, 4));
+
+	redCircle.bodyDef.userData = ballR;
+	int bounce=ofRandom(0.5, 2.0);
+	int densety = ofRandom(3, 5);
+	redCircle.setPhysics(densety,bounce, 0.1);
+	int x = ofRandom(0,kinect.width);
+	int y = 0;
+
+	redCircle.setup(myWorld, x, y, ballR->radius);
+	redCircles.push_back(redCircle);
+}
+void testApp::createBC()
+{
+	ofxBox2dCircle blueCircle;
+	blueCircle.fixture.filter.categoryBits = CATEGORY_BLUE_BALLS;
+	blueCircle.fixture.filter.maskBits = MASK_BLUE_BALLS;
+	//blueCircle.fixture.filter.groupIndex  = BLUE_GROUP;
+
+	Data* ballB = new Data;
+	ballB->setupCustomData(4);
+	ballB->radius = ofRandom(5.0, 20.0);
+	ballB->setupCustomColorB();
+
+	blueCircle.bodyDef.userData = ballB;
+	int bounce=ofRandom(0.5, 2.0);
+	int densety = ofRandom(3, 5);
+	int x = ofRandom(0,kinect.width);
+	int y = 0;
+	blueCircle.setPhysics(densety, bounce, 0.1);
+	blueCircle.setup(myWorld, x, y, ballB->radius);
+	blueCircles.push_back(blueCircle);
+}
+
 //--------------------------------------------------------------------------------------------------------------
 void testApp::makeOutlines(){	
-	
-	/*
-	grayImage.dilate();
-	grayImage.erode();
-
-	for(int i=0; i<lineStrips.size(); i++)
-	{
-		lineStrips[i].clear();
-	}
-	lineStrips.clear();
-	simpleContours.clear();
-
-	for(int i=0; i<contourFinder.blobs.size(); i++)
-	{
-		if (contourFinder.blobs[i].nPts != -1) 
-		{
-			int numPoints = contourFinder.blobs[i].nPts;
-			contourReg.clear();
-			contourSmooth.clear();
-			contourSimple.clear();
-			contourReg.assign(numPoints, ofxPoint2f());
-			contourSmooth.assign(numPoints, ofxPoint2f());
-			
-			ofxBox2dPolygon lineStrip;
-			for(int j = 0; j < numPoints; j++)
-			{
-				//lineStrip.addVertex(contourFinderDiff.blobs[i].pts[j]);
-				contourReg[j] = contourFinder.blobs[i].pts[j];
-			}
-			
-			
-			contourSimp.smooth(contourReg, contourSmooth, smoothPct);
-			contourSimp.simplify(contourSmooth, contourSimple, tolerance);
-			simpleContours.push_back(contourSimple);
 		
-			
-			for (float f = 0;f<contourSimple.size(); f++) 
-			{
-				int x = ofGetWidth();
-				int y = ofGetHeight(); 
-				lineStrip.addVertex(contourSimple[f].x ,contourSimple[f].y);
-			}
-			
-			//myRedWorld->CreateBody(&lineStrip.bodyDef);
-			lineStrip.create(myRedWorld);
-			lineStrip.setPhysics(1.0, 0.3, 0.3);
-			//lineStrip.friction=lineFriction;
-			//lineStrip.density=lineDensity;
-			lineStrips.push_back(lineStrip);	
-		}
-	}
-	
-	*/	
-	
 	for (int i = 0; i < contourFinder.blobs.size(); i++)
 	{
 		ofPolyline contour;
@@ -523,8 +527,8 @@ void testApp::makeOutlines(){
         vector <b2Vec2> outlinePoints;
 		
 		for (int j=0; j<contour.size(); j++){
-//1024x768            outlinePoints.push_back( b2Vec2(contour[j].x*1.6/(B2SCALE), (contour[j].y)*1.6/B2SCALE)) ;
-            outlinePoints.push_back( b2Vec2(contour[j].x*1.25/(B2SCALE), (contour[j].y)*1.25/B2SCALE)) ;
+/*1024x768 */           outlinePoints.push_back( b2Vec2(contour[j].x*1.6/(B2SCALE), (contour[j].y)*1.6/B2SCALE)) ;
+           // outlinePoints.push_back( b2Vec2(contour[j].x*1.25/(B2SCALE), (contour[j].y)*1.25/B2SCALE)) ;
             
 		}
 		
@@ -598,6 +602,31 @@ void testApp::spawnParticles( float brickX, float brickY ){
 	
 }
 
+void testApp::checkDestroy()
+{
+	float wave =ofGetElapsedTimef();
+	int i=0;
+	while(i<redCircles.size())
+	{
+		Data *d=(Data*)redCircles[i].bodyDef.userData;
+		if( (wave - d->lifetime) >=500)
+		{
+			redCircles.erase(redCircles.begin() + i);
+		}
+		else {i++;}
+	}
+	i=0;
+	while( i<blueCircles.size())
+	{
+		Data *d=(Data*)blueCircles[i].bodyDef.userData;
+		if( (wave - d->lifetime) >=500)
+		{
+			blueCircles.erase(blueCircles.begin() + i);
+		}
+		else {i++;}
+	}
+
+}
 //--------------------------------------------------------------------------------------------------------------
 void testApp::doDestroy(){
 	std::vector<b2Body*>::iterator pos;
@@ -645,6 +674,7 @@ void testApp::audioReceived(float* input, int bufferSize, int nChannels) {
 		}
 		for(int i = 0; i < bufferSize; i++) {
 			audioBuffer[i] /= maxValue;
+			//cout<<"audio buffer "<<audioBuffer[i]<<endl;
 		}
 		
 	} else if (mode == NOISE) {
@@ -665,8 +695,12 @@ void testApp::audioReceived(float* input, int bufferSize, int nChannels) {
 	}
 	for(int i = 0; i < fft->getBinSize(); i++) {
 		audioBins[i] /= maxValue;
+		//cout<<"audio bin "<<audioBins[i]<<endl;
 	}
 	
+	//if(maxValue > 0.7) { createBC();}
+	//else if(maxValue> 0.5){createRC();}
+
 	soundMutex.lock();
 	middleBuffer = audioBuffer;
 	middleBins = audioBins;
@@ -680,6 +714,9 @@ void testApp::audioReceived(float* input, int bufferSize, int nChannels) {
 void testApp::keyPressed (int key) {
 
 	switch (key) {
+	case 'f':
+		ofSetFullscreen(true);
+		break;
 		case ' ':
 			 spawnParticles(ofRandom(10, ofGetWidth()-10), 10);
 			// spawnParticles(ofRandom(10, 200), 10);
@@ -733,6 +770,8 @@ void testApp::keyPressed (int key) {
 		
 		case 'a':
 			createCircle();
+			//createBC();
+			//createRC();
 			break;
 		case 'b':
 			doDrawBox2DCountours = !doDrawBox2DCountours;
